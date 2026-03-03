@@ -1,0 +1,217 @@
+# Agent Registry — Defines agent roles, capabilities, and adaptation state
+# This file is loaded by every agent session to understand the team topology.
+# Updated by the metaprogramming system based on observed performance.
+
+version: 1
+
+agents:
+  orchestrator:
+    role: "Orchestrator"
+    description: "Tech lead. Decomposes tasks, manages integration, governs architecture."
+    capabilities:
+      - task_decomposition
+      - merge_conflict_resolution
+      - architecture_governance
+      - adr_approval
+      - agent_dispatch
+    mandatory_context:
+      - docs/architecture/ARCHITECTURE.md
+      - docs/architecture/INTERFACES.md
+      - docs/architecture/INVARIANTS.md
+      - docs/architecture/DECISIONS.md
+      - meta/agent_registry.yaml
+    tools:
+      - tools/build_check.sh
+      - tools/run_tests.sh
+      - tools/invariant_check.py
+      - tools/index_codebase.py
+    branch_prefix: "orchestrator"
+    adaptation_state:
+      context_hits: {}      # files frequently retrieved → candidates for mandatory_context
+      task_success_rate: 1.0
+      avg_iterations: 0
+      last_adapted: "2026-03-03"
+
+  numerics:
+    role: "Numerics"
+    description: "FEM assembly, solvers, time integration, constitutive models."
+    capabilities:
+      - element_implementation
+      - solver_implementation
+      - time_integration
+      - material_models
+      - numerical_verification
+    mandatory_context:
+      - docs/architecture/INVARIANTS.md
+      - docs/architecture/INTERFACES.md
+      - docs/architecture/PATTERNS.md
+    tools:
+      - tools/build_check.sh
+      - tools/run_tests.sh
+      - tools/convergence_study.py
+      - tools/invariant_check.py
+    branch_prefix: "numerics"
+    specialization_keywords:
+      - element
+      - solver
+      - stiffness
+      - mass
+      - assembly
+      - convergence
+      - constitutive
+      - tangent
+      - residual
+      - newton
+      - integration
+    adaptation_state:
+      context_hits: {}
+      task_success_rate: 1.0
+      avg_iterations: 0
+      last_adapted: "2026-03-03"
+
+  infrastructure:
+    role: "Infrastructure"
+    description: "Build systems, MPI/OpenMP, GPU offloading, memory layout, performance."
+    capabilities:
+      - build_system
+      - mpi_parallelism
+      - gpu_offloading
+      - performance_optimization
+      - memory_management
+    mandatory_context:
+      - docs/architecture/INVARIANTS.md
+      - docs/architecture/INTERFACES.md
+    tools:
+      - tools/build_check.sh
+      - tools/run_tests.sh
+      - tools/profile_run.sh
+      - tools/invariant_check.py
+    branch_prefix: "infra"
+    specialization_keywords:
+      - cmake
+      - mpi
+      - openmp
+      - cuda
+      - hip
+      - gpu
+      - parallel
+      - build
+      - compile
+      - link
+      - performance
+      - memory
+      - cache
+    adaptation_state:
+      context_hits: {}
+      task_success_rate: 1.0
+      avg_iterations: 0
+      last_adapted: "2026-03-03"
+
+  interface_io:
+    role: "Interface/IO"
+    description: "Mesh I/O, HDF5/VTK output, Python bindings, REST APIs."
+    capabilities:
+      - mesh_io
+      - file_formats
+      - python_bindings
+      - api_design
+      - visualization
+    mandatory_context:
+      - docs/architecture/INVARIANTS.md
+      - docs/architecture/INTERFACES.md
+    tools:
+      - tools/build_check.sh
+      - tools/run_tests.sh
+      - tools/invariant_check.py
+    branch_prefix: "io"
+    specialization_keywords:
+      - mesh
+      - hdf5
+      - vtk
+      - output
+      - input
+      - read
+      - write
+      - format
+      - python
+      - binding
+      - api
+      - rest
+    adaptation_state:
+      context_hits: {}
+      task_success_rate: 1.0
+      avg_iterations: 0
+      last_adapted: "2026-03-03"
+
+  test_verification:
+    role: "Test & Verification"
+    description: "Unit tests, MMS, regression tests, CI pipeline, convergence studies."
+    capabilities:
+      - unit_testing
+      - mms_verification
+      - regression_testing
+      - ci_pipeline
+      - convergence_studies
+      - coverage_analysis
+    mandatory_context:
+      - docs/architecture/INVARIANTS.md
+      - docs/architecture/INTERFACES.md
+      - docs/architecture/PATTERNS.md
+    tools:
+      - tools/build_check.sh
+      - tools/run_tests.sh
+      - tools/convergence_study.py
+      - tools/coverage_report.sh
+      - tools/regression_compare.py
+      - tools/invariant_check.py
+    branch_prefix: "test"
+    adaptation_state:
+      context_hits: {}
+      task_success_rate: 1.0
+      avg_iterations: 0
+      last_adapted: "2026-03-03"
+
+  review:
+    role: "Review"
+    description: "Code review, invariant enforcement, quality gates. Has veto power."
+    capabilities:
+      - code_review
+      - invariant_checking
+      - api_consistency
+      - numerical_pitfall_detection
+      - documentation_review
+    mandatory_context:
+      - docs/architecture/INVARIANTS.md
+      - docs/architecture/INTERFACES.md
+      - docs/architecture/PATTERNS.md
+      - docs/architecture/DECISIONS.md
+    tools:
+      - tools/invariant_check.py
+      - tools/build_check.sh
+      - tools/run_tests.sh
+    branch_prefix: "review"
+    veto_power: true
+    veto_categories:
+      - numerical_correctness
+      - parallel_safety
+      - interface_violation
+      - invariant_violation
+    adaptation_state:
+      context_hits: {}
+      task_success_rate: 1.0
+      avg_iterations: 0
+      last_adapted: "2026-03-03"
+
+# Dispatch rules — how the Orchestrator assigns agents to subtasks
+dispatch_rules:
+  - match_keywords: true    # Use specialization_keywords to route tasks
+  - fallback: orchestrator  # If no specialist matches, Orchestrator handles it
+  - parallel_threshold: 2   # Dispatch to parallel agents if task decomposes into 2+ independent subtasks
+  - review_required: true   # Every completed task passes through Review agent
+
+# Metaprogramming thresholds
+adaptation_thresholds:
+  pattern_codification: 3       # Successes before adding to PATTERNS.md
+  context_promotion: 5          # Retrievals before adding to mandatory_context
+  context_demotion: 20          # Tasks without retrieval before removing from mandatory_context
+  performance_regression: 0.15  # Relative degradation triggering rollback alert

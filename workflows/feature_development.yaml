@@ -1,0 +1,156 @@
+# Feature Development Workflow
+# Standard workflow for implementing new features in the simulation codebase.
+
+name: feature_development
+description: End-to-end workflow for implementing a new feature
+version: 1
+
+triggers:
+  - new_feature_request
+  - github_issue_labeled_feature
+
+stages:
+  - id: intake
+    name: "Task Intake"
+    agent: orchestrator
+    actions:
+      - parse_requirements
+      - identify_affected_modules
+      - check_existing_patterns
+    outputs:
+      - task_decomposition
+      - branch_names
+      - acceptance_criteria
+    next: decompose
+
+  - id: decompose
+    name: "Task Decomposition"
+    agent: orchestrator
+    actions:
+      - create_subtasks
+      - assign_agents
+      - create_task_state_files
+      - create_feature_branches
+    outputs:
+      - subtask_list
+      - dependency_graph
+    next: implement
+
+  - id: implement
+    name: "Parallel Implementation"
+    parallel: true
+    subtasks:
+      - id: numerics_work
+        agent: numerics
+        condition: "has_numerical_component"
+        actions:
+          - load_context_template
+          - load_module_spec
+          - implement_numerical_code
+          - write_docstrings_with_math
+          - run_invariant_check
+        outputs:
+          - source_files
+          - local_tests
+
+      - id: infrastructure_work
+        agent: infrastructure
+        condition: "has_infrastructure_component"
+        actions:
+          - load_context_template
+          - implement_parallel_infrastructure
+          - add_gpu_fallback
+          - update_build_system
+        outputs:
+          - source_files
+          - cmake_changes
+
+      - id: io_work
+        agent: interface_io
+        condition: "has_io_component"
+        actions:
+          - load_context_template
+          - implement_io_routines
+          - add_format_versioning
+        outputs:
+          - source_files
+    next: integrate
+
+  - id: integrate
+    name: "Integration"
+    agent: orchestrator
+    actions:
+      - merge_feature_branches
+      - resolve_conflicts
+      - verify_interface_consistency
+      - run_build_check
+      - run_integration_tests
+    outputs:
+      - integrated_branch
+    next: review
+
+  - id: review
+    name: "Code Review"
+    agent: review
+    actions:
+      - run_invariant_check
+      - review_numerical_correctness
+      - review_parallel_safety
+      - review_code_quality
+      - review_documentation
+    outputs:
+      - review_result  # pass | fail | pass_with_comments
+      - review_issues
+    on_fail: implement  # Goes back to implementation
+    next: test
+
+  - id: test
+    name: "Verification & Testing"
+    agent: test_verification
+    actions:
+      - run_unit_tests
+      - run_convergence_studies
+      - run_regression_tests
+      - check_coverage
+      - generate_report
+    outputs:
+      - test_results
+      - coverage_report
+      - convergence_data
+    on_fail: implement
+    next: finalize
+
+  - id: finalize
+    name: "Finalize"
+    agent: orchestrator
+    actions:
+      - update_architecture_docs  # if needed
+      - create_adr_entries  # if decisions were made
+      - update_patterns  # if new patterns emerged
+      - run_quality_gate
+      - log_performance
+      - run_reflection
+    outputs:
+      - final_branch
+      - adr_entries
+    next: merge
+
+  - id: merge
+    name: "Merge"
+    agent: orchestrator
+    actions:
+      - final_build_check
+      - merge_to_main
+      - tag_if_release
+      - cleanup_branches
+    requires_human_approval: true
+
+# Workflow metadata
+metadata:
+  estimated_stages: 7
+  typical_duration: "varies"
+  required_agents:
+    - orchestrator  # always
+    - review        # always
+    - test_verification  # always
+    # Others depend on task type

@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PerformanceEntry",
+  "description": "Schema for agent performance tracking entries in performance_log.jsonl",
+  "type": "object",
+  "required": ["timestamp", "task_id", "agent_role", "task_type"],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "agent_role": {
+      "type": "string",
+      "enum": ["orchestrator", "numerics", "infrastructure", "interface_io", "test_verification", "review"]
+    },
+    "task_type": {
+      "type": "string",
+      "enum": ["implementation", "bug_fix", "refactoring", "review", "testing", "documentation", "build", "optimization", "decomposition", "integration"]
+    },
+    "files_modified": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "tools_invoked": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tool": { "type": "string" },
+          "success": { "type": "boolean" },
+          "duration_ms": { "type": "number" }
+        },
+        "required": ["tool", "success"]
+      }
+    },
+    "iterations": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of agent turns to complete the task"
+    },
+    "review_result": {
+      "type": "string",
+      "enum": ["pass", "fail", "skip"]
+    },
+    "review_issues": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "test_result": {
+      "type": "string",
+      "enum": ["pass", "fail", "skip"]
+    },
+    "context_files_loaded": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Files loaded into mandatory context"
+    },
+    "context_files_retrieved": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Files retrieved on-demand during the task"
+    },
+    "context_utilization": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Estimated fraction of context window used"
+    },
+    "adaptations_triggered": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "IDs of adaptation rules triggered by this task"
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}

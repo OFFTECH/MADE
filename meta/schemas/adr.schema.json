@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ArchitectureDecisionRecord",
+  "description": "Schema for structured ADR entries",
+  "type": "object",
+  "required": ["id", "title", "date", "status", "proposed_by", "context", "decision", "consequences"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^ADR-[0-9]+$"
+    },
+    "title": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["proposed", "accepted", "superseded", "deprecated"]
+    },
+    "superseded_by": {
+      "type": ["string", "null"],
+      "pattern": "^ADR-[0-9]+$"
+    },
+    "proposed_by": {
+      "type": "string",
+      "description": "Agent role or 'human'"
+    },
+    "decided_by": {
+      "type": "string",
+      "description": "Who approved (usually 'orchestrator' or 'human')"
+    },
+    "context": {
+      "type": "string",
+      "description": "What motivates this decision"
+    },
+    "decision": {
+      "type": "string",
+      "description": "What we decided"
+    },
+    "consequences": {
+      "type": "object",
+      "properties": {
+        "positive": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "negative": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "alternatives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "option": { "type": "string" },
+          "reason_rejected": { "type": "string" }
+        }
+      }
+    },
+    "related_files": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Files affected by this decision"
+    }
+  }
+}

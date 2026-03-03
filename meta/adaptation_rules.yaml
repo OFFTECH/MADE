@@ -1,0 +1,172 @@
+# Adaptation Rules — Self-improvement logic for the MADE system
+# These rules define how the agent system modifies its own configuration
+# based on observed outcomes. Rules are evaluated after each task cycle.
+
+version: 1
+
+# Rule evaluation order matters — earlier rules take priority
+rules:
+
+  # === Context Optimization Rules ===
+
+  - id: context_promote
+    trigger: "file_retrieval_count >= adaptation_thresholds.context_promotion"
+    description: >
+      When an agent retrieves the same file in 5+ consecutive tasks,
+      promote it to the agent's mandatory_context in agent_registry.yaml.
+    action:
+      type: update_agent_registry
+      field: mandatory_context
+      operation: append
+    side_effects:
+      - log_adaptation
+      - update_performance_baseline
+    rollback_on: performance_regression
+
+  - id: context_demote
+    trigger: "tasks_since_last_retrieval >= adaptation_thresholds.context_demotion"
+    description: >
+      When a mandatory_context file hasn't been used in 20+ tasks,
+      remove it from mandatory loading to free context budget.
+    action:
+      type: update_agent_registry
+      field: mandatory_context
+      operation: remove
+    guard: "file not in ['INVARIANTS.md', 'INTERFACES.md']"  # Never demote core docs
+    side_effects:
+      - log_adaptation
+    rollback_on: performance_regression
+
+  # === Pattern Codification Rules ===
+
+  - id: codify_pattern
+    trigger: "similar_solution_count >= adaptation_thresholds.pattern_codification"
+    description: >
+      When the same solution approach succeeds 3+ times across different tasks,
+      extract and codify it in PATTERNS.md.
+    action:
+      type: append_to_file
+      target: docs/architecture/PATTERNS.md
+    requires_review: true
+    side_effects:
+      - log_adaptation
+      - notify_orchestrator
+
+  - id: deprecate_pattern
+    trigger: "pattern_failure_count >= 3 AND pattern_success_count == 0 in last 10 tasks"
+    description: >
+      When a pattern fails consistently without successes, mark it deprecated.
+    action:
+      type: update_pattern_status
+      new_status: deprecated
+    requires_review: true
+    side_effects:
+      - log_adaptation
+      - create_adr
+
+  # === Tool Refinement Rules ===
+
+  - id: tool_output_improvement
+    trigger: "tool_parse_failure_rate > 0.2"
+    description: >
+      When a tool's output is unparseable >20% of the time, the agent
+      should modify the tool script to improve output formatting.
+    action:
+      type: flag_for_improvement
+      target: tool_script
+    side_effects:
+      - log_adaptation
+      - create_task
+
+  - id: tool_timeout_adjustment
+    trigger: "tool_timeout_rate > 0.1"
+    description: >
+      When a tool times out >10% of the time, increase its timeout
+      or flag for performance optimization.
+    action:
+      type: adjust_tool_config
+      field: timeout
+      operation: increase_by_50_percent
+    max_applications: 3  # Don't increase indefinitely
+    side_effects:
+      - log_adaptation
+
+  # === Invariant Evolution Rules ===
+
+  - id: discover_invariant
+    trigger: "same_bug_class_count >= 2"
+    description: >
+      When the same class of bug is caught by Review agent 2+ times,
+      propose a new invariant to prevent it systematically.
+    action:
+      type: propose_adr
+      category: new_invariant
+    requires_review: true
+    requires_human_approval: true
+    side_effects:
+      - log_adaptation
+      - notify_all_agents
+
+  # === Performance Regression Detection ===
+
+  - id: detect_regression
+    trigger: "metric_delta > adaptation_thresholds.performance_regression"
+    description: >
+      When any tracked metric degrades by >15% relative to baseline,
+      flag the most recent adaptation for review/rollback.
+    action:
+      type: flag_regression
+    side_effects:
+      - log_adaptation
+      - alert_orchestrator
+      - pause_adaptations  # Stop further adaptations until resolved
+
+  # === Workflow Optimization Rules ===
+
+  - id: skip_unnecessary_review
+    trigger: "agent_review_pass_rate > 0.95 for last 20 tasks AND change_is_trivial"
+    description: >
+      When an agent consistently passes review for trivial changes,
+      allow fast-track review (automated invariant check only).
+    action:
+      type: update_workflow
+      field: review_mode
+      value: fast_track
+    guard: "change_type in ['documentation', 'test_only', 'formatting']"
+    rollback_on: any_review_failure
+    side_effects:
+      - log_adaptation
+
+  - id: require_extra_review
+    trigger: "agent_review_fail_rate > 0.3 for last 10 tasks"
+    description: >
+      When an agent frequently fails review, require pre-review self-check.
+    action:
+      type: update_workflow
+      field: pre_review_required
+      value: true
+    side_effects:
+      - log_adaptation
+      - add_self_check_step
+
+# Adaptation logging format
+log_format:
+  timestamp: ISO8601
+  rule_id: string
+  agent: string
+  trigger_data: object
+  action_taken: string
+  previous_state: object
+  new_state: object
+  justification: string
+
+# Safety constraints
+safety:
+  max_adaptations_per_day: 10
+  require_human_approval_for:
+    - CLAUDE.md modifications
+    - INVARIANTS.md modifications
+    - INTERFACES.md modifications
+    - agent removal or addition
+  rollback_window_hours: 24
+  pause_on_regression: true

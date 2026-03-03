@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash(python tools/*)",
+      "Bash(bash tools/*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(cmake *)",
+      "Bash(ctest *)",
+      "Bash(python -m pytest*)"
+    ]
+  }
+}

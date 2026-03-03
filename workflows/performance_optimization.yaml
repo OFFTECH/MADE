@@ -1,0 +1,112 @@
+# Performance Optimization Workflow
+# Data-driven workflow for optimizing simulation performance.
+
+name: performance_optimization
+description: Profile-first optimization workflow for HPC code
+version: 1
+
+triggers:
+  - performance_regression
+  - optimization_request
+  - scaling_issue
+
+stages:
+  - id: baseline
+    name: "Establish Baseline"
+    agent: infrastructure
+    actions:
+      - run_benchmark_suite
+      - profile_current_code
+      - generate_roofline_analysis
+      - record_baseline_metrics
+    outputs:
+      - baseline_profile
+      - hotspot_list
+      - roofline_position
+    next: analyze
+
+  - id: analyze
+    name: "Analyze Bottlenecks"
+    agent: infrastructure
+    actions:
+      - classify_bottlenecks  # compute-bound vs memory-bound
+      - identify_optimization_targets
+      - estimate_theoretical_speedup
+      - propose_optimization_strategy
+    outputs:
+      - optimization_plan
+      - expected_improvement
+    next: implement
+
+  - id: implement
+    name: "Implement Optimizations"
+    agent: infrastructure
+    actions:
+      - load_context_template
+      - implement_optimizations
+      - maintain_cpu_fallback  # Invariant #9
+      - verify_correctness  # Optimization must not change results
+    constraints:
+      - "Output must be bitwise identical to baseline (Invariant #7)"
+      - "GPU kernels must have CPU fallback (Invariant #9)"
+      - "No heap allocation in hot loops (Invariant #11)"
+    outputs:
+      - optimized_files
+    next: verify
+
+  - id: verify
+    name: "Verify Correctness"
+    agent: test_verification
+    actions:
+      - run_regression_suite  # Results must match baseline exactly
+      - run_convergence_studies  # Rates must be preserved
+      - compare_outputs_to_baseline
+    outputs:
+      - correctness_verified  # boolean
+    on_fail: implement  # Optimization broke something
+    next: benchmark
+
+  - id: benchmark
+    name: "Benchmark Improvement"
+    agent: infrastructure
+    actions:
+      - run_benchmark_suite
+      - profile_optimized_code
+      - compare_to_baseline
+      - generate_speedup_report
+    outputs:
+      - speedup_data
+      - new_profile
+    next: review
+
+  - id: review
+    name: "Review"
+    agent: review
+    actions:
+      - review_optimization_correctness
+      - review_maintainability
+      - verify_invariant_compliance
+    outputs:
+      - review_result
+    on_fail: implement
+    next: merge
+
+  - id: merge
+    name: "Merge & Update Baselines"
+    agent: orchestrator
+    actions:
+      - merge_optimization
+      - update_performance_baselines
+      - log_improvement_to_performance_log
+      - run_reflection
+    outputs:
+      - merged_commit
+      - updated_baselines
+
+metadata:
+  principle: "Profile first, optimize second. Never guess at bottlenecks."
+  required_agents:
+    - infrastructure
+    - test_verification
+    - review
+    - orchestrator

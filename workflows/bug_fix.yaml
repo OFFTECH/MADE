@@ -1,0 +1,88 @@
+# Bug Fix Workflow
+# Streamlined workflow for diagnosing and fixing bugs.
+
+name: bug_fix
+description: Workflow for diagnosing, fixing, and regression-protecting bugs
+version: 1
+
+triggers:
+  - bug_report
+  - test_failure
+  - github_issue_labeled_bug
+
+stages:
+  - id: diagnose
+    name: "Diagnosis"
+    agent: orchestrator
+    actions:
+      - reproduce_bug
+      - identify_root_cause
+      - identify_affected_module
+      - assign_specialist
+    outputs:
+      - root_cause_analysis
+      - assigned_agent
+      - fix_branch
+    next: fix
+
+  - id: fix
+    name: "Implement Fix"
+    agent: "{assigned_agent}"  # Dynamic based on diagnosis
+    actions:
+      - load_context_template
+      - implement_fix
+      - add_regression_test  # MANDATORY for every bug fix (Invariant #17)
+      - run_invariant_check
+      - run_existing_tests
+    outputs:
+      - fix_files
+      - regression_test
+    constraints:
+      - "MUST add regression test (Invariant #17)"
+      - "Fix must not break existing tests"
+    next: review
+
+  - id: review
+    name: "Review Fix"
+    agent: review
+    actions:
+      - verify_root_cause_addressed
+      - check_regression_test_exists
+      - review_fix_correctness
+      - check_no_side_effects
+    outputs:
+      - review_result
+    on_fail: fix
+    next: test
+
+  - id: test
+    name: "Regression Testing"
+    agent: test_verification
+    actions:
+      - run_new_regression_test
+      - run_full_regression_suite
+      - verify_bug_is_fixed
+      - verify_no_new_failures
+    outputs:
+      - test_results
+    on_fail: fix
+    next: merge
+
+  - id: merge
+    name: "Merge Fix"
+    agent: orchestrator
+    actions:
+      - run_quality_gate
+      - log_performance
+      - merge_to_main
+      - close_issue
+    outputs:
+      - merged_commit
+
+metadata:
+  estimated_stages: 5
+  required_agents:
+    - orchestrator
+    - review
+    - test_verification
+    - "{specialist}"  # depends on bug location
